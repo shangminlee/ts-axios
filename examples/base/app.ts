@@ -1,3 +1,4 @@
+import { parseHeaders } from '../../src/helpers/headers'
 import axios from '../../src/index'
 
 
@@ -62,7 +63,7 @@ axios({
   }
 })
 
-console.log('------------------> process url')
+// console.log('------------------> process url')
 
 axios({
   method: 'post',
@@ -74,6 +75,8 @@ axios({
     a: 1,
     b: 2
   }
+}).then(res => {
+  // console.log('-------------------> ' + res)
 })
 
 const arr = new Int32Array([21, 31])
@@ -92,4 +95,9 @@ axios({
   method: 'post',
   url: '/base/post',
   data: searchParams
+}).then(res => {
+  console.log(res)
+  return res.headers
+}).then(res => {
+  //
 })

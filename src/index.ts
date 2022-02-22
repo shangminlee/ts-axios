@@ -1,24 +1,13 @@
-/**
- * 基本操作
- * axios({
- *    method: 'get',
- *    url: '/simple/get',
- *    params: {
- *       a: 1,
- *       b: 2
- *    }
- * })
- */
 
-import { transformRequest } from './helpers/data'
-import { processHeaders } from './helpers/header'
+import { transformRequest, transformResponse } from './helpers/data'
+import { processHeaders } from './helpers/headers'
 import { buildURL } from './helpers/url'
-import { AxiosRequestConfig } from './types'
+import { AxiosPromise, AxiosRequestConfig, AxiosResponse } from './types'
 import xhr from './xhr'
 
-function axios(config: AxiosRequestConfig) {
+function axios(config: AxiosRequestConfig): AxiosPromise {
   processConfig(config)
-  xhr(config)
+  return xhr(config).then(res => { return transformResponseData(res)})
 }
 
 function processConfig(config: AxiosRequestConfig): void {
@@ -26,6 +15,8 @@ function processConfig(config: AxiosRequestConfig): void {
   config.headers = transformHeaders(config)
   config.data = transformRequestData(config)
 }
+
+
 function transformUrl(config: AxiosRequestConfig): string {
   const { url, params } = config
   return buildURL(url, params)
@@ -36,6 +27,11 @@ function transformRequestData(config: AxiosRequestConfig): any {
 function transformHeaders(config: AxiosRequestConfig): any {
   const { headers = {}, data } = config
   return processHeaders(headers, data)
+}
+
+function transformResponseData(res: AxiosResponse): AxiosResponse {
+  res.data = transformResponse(res.data)
+  return res
 }
 
 export default axios

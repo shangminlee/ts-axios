@@ -12,7 +12,7 @@ export interface AxiosRequestConfig {
 }
 
 /**
- * 方法和类型
+ * 请求方法和类型
  */
 export type Method = 'get' | 'GET' 
   | 'delete' | 'DELETE'
