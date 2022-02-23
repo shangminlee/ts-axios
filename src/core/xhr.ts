@@ -1,5 +1,5 @@
-
-import { parseHeaders } from './helpers/headers'
+import { createError } from '../helpers/error'
+import { parseHeaders } from '../helpers/headers'
 import { AxiosPromise, AxiosRequestConfig, AxiosResponse } from './types'
 
 /**
@@ -8,14 +8,18 @@ import { AxiosPromise, AxiosRequestConfig, AxiosResponse } from './types'
  * @returns Http请求Promise对象
  */
 export default function xhr(config: AxiosRequestConfig): AxiosPromise {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     // 解构请求配置
-    const { data = null, url, method = 'get', headers, responseType } = config
+    const { data = null, url, method = 'get', headers, responseType, timeout } = config
     // 创建一个 XMLHttpRequest 请求对象
     const request = new XMLHttpRequest()
     // 如果预先配置了 responseType， 请求对象使用该配置
-    if(responseType) {
+    if (responseType) {
       request.responseType = responseType
+    }
+    // 连接超时时间
+    if (timeout) {
+      request.timeout = timeout
     }
     // 开始请求
     request.open(method.toUpperCase(), url, true)
@@ -29,10 +33,14 @@ export default function xhr(config: AxiosRequestConfig): AxiosPromise {
       if (request.readyState !== 4) {
         return
       }
+      if (request.status === 0) {
+        return
+      }
       // 获取所有 返回Headers
       const responseHeaders = parseHeaders(request.getAllResponseHeaders())
       // 返回数据
-      const responseData = responseType && responseType !== 'text' ? request.response : request.responseText
+      const responseData =
+        responseType && responseType !== 'text' ? request.response : request.responseText
       // 构建返回对象
       const response: AxiosResponse = {
         data: responseData,
@@ -42,7 +50,32 @@ export default function xhr(config: AxiosRequestConfig): AxiosPromise {
         config,
         request
       }
-      resolve(response)
+      handleResponse(response)
+    }
+    // 返回数据处理
+    const handleResponse = (response: AxiosResponse) => {
+      // 一个正常的请求，往往会返回 200-300 之间的 HTTP 状态码
+      if (response.status >= 200 && response.status < 300) {
+        resolve(response)
+      } else {
+        reject(
+          createError(
+            `Request failed with status code ${response.status}`,
+            config,
+            null,
+            request,
+            response
+          )
+        )
+      }
+    }
+    // 错误处理
+    request.onerror = function handleError() {
+      reject(createError('Network Error', config, null, request))
+    }
+    // 超时处理
+    request.ontimeout = function handleTimeout() {
+      reject(createError(`Timeout of ${timeout} ms exceeded`, config, 'ECONNABORTED', request))
     }
     // 设置请求Header
     Object.keys(headers).forEach(name => {
